@@ -6,6 +6,8 @@ export const pool = new Pool({
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
+console.log("[DB] using", process.env.DATABASE_URL);
+
 export async function query(sql, params) {
   const res = await pool.query(sql, params);
   return res.rows;
