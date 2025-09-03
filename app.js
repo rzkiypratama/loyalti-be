@@ -29,7 +29,7 @@ app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
 // NOTE: raw hanya untuk /webhooks. Jangan pakai express.json() di sini.
 app.use("/webhooks", express.raw({ type: "application/json" }), webhookGuard);
 // route webhook (satu pintu)
-app.post("/webhooks/*", webhookHandler);
+app.post("/webhooks/:rest(.*)", webhookHandler);
 
 /* ---------- APIs biasa ---------- */
 app.use(express.json());
