@@ -1,6 +1,6 @@
 import { Router } from "express";
 import publicRoutes from "./routes/public.routes.js";
-import webhookRoutes from "./routes/webhook.routes.js";
+import webhookRoutes from "./routes/webhook-copy.routes.js";
 
 const router = Router();
 
