@@ -15,7 +15,7 @@ const app = express();
 
 /* ---------- static & health ---------- */
 app.use("/public", express.static(path.join(__dirname, "public")));
-app.get("/health", (req, res) => res.type("text").send("ok"));
+app.get("/health", (_req, res) => res.type("text").send("ok"));
 
 /* ---------- logging & CORS ---------- */
 app.use(morgan("tiny"));
@@ -37,7 +37,7 @@ app.use(routes);
 
 /* ---------- error handler ---------- */
 // eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   logger.error(err);
   res.status(err.status || 500).json({ error: "internal_error" });
 });
