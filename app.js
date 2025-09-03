@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import "./src/configs/env.js"; // load .env
 import routes from "./src/index.js";
 import { logger } from "./src/utils/logger.js";
-import { webhooksRouter } from "./src/controllers/webhook.controller.js";
+import { webhookHandler } from "./src/controllers/webhook.controller.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -31,7 +31,7 @@ app.use(
   "/webhooks",
   express.raw({ type: "application/json" }),
   webhookGuard,
-  webhooksRouter // <-- daftar path spesifik ada di sini
+  webhookHandler // <-- daftar path spesifik ada di sini
 );
 // route webhook (satu pintu)
 // app.post("/webhooks/:rest(.*)", webhookHandler);
