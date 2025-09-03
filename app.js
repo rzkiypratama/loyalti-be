@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import "./src/configs/env.js"; // load .env
 import routes from "./src/index.js";
 import { logger } from "./src/utils/logger.js";
-import { webhookHandler } from "./src/controllers/webhook.controller.js";
+import { webhooksRouter } from "./src/controllers/webhook.controller.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -27,9 +27,14 @@ app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
 
 /* ---------- WEBHOOKS: raw body + HMAC guard ---------- */
 // NOTE: raw hanya untuk /webhooks. Jangan pakai express.json() di sini.
-app.use("/webhooks", express.raw({ type: "application/json" }), webhookGuard);
+app.use(
+  "/webhooks",
+  express.raw({ type: "application/json" }),
+  webhookGuard,
+  webhooksRouter // <-- daftar path spesifik ada di sini
+);
 // route webhook (satu pintu)
-app.post("/webhooks/:rest(.*)", webhookHandler);
+// app.post("/webhooks/:rest(.*)", webhookHandler);
 
 /* ---------- APIs biasa ---------- */
 app.use(express.json());
