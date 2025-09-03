@@ -21,6 +21,12 @@ export async function webhookHandler(req, res) {
     } else if (topic === "refunds/create") {
       await rollbackForRefund(shopify);
     } else if (topic === "customers/create") {
+      console.log(
+        "[WH] customers/create shop=%s email=%s id=%s",
+        shopify.shop_domain,
+        shopify?.body?.email,
+        shopify?.body?.id
+      );
       const email = (body.email || "").toLowerCase().trim();
       if (!email) return; // tidak ada email → skip bonus
 
