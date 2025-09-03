@@ -51,3 +51,29 @@ export async function earnPointsForOrder(order) {
 export async function rollbackForRefund(refundPayload) {
   // TODO: cari transaksi order-id terkait dan rollback proporsional
 }
+
+export async function grantSignupBonus(customerId, bonus = 200) {
+  bonus = parseInt(bonus, 10);
+  if (!customerId || !Number.isFinite(bonus) || bonus <= 0) return;
+
+  // Cek apakah sudah pernah diberi bonus signup
+  const exists = await query(
+    `SELECT 1 FROM point_transactions 
+     WHERE customer_id = $1 AND reason = 'SIGNUP_BONUS' LIMIT 1`,
+    [customerId]
+  );
+  if (exists.length) return; // sudah pernah, idempoten
+
+  // Tambah saldo & lifetime, catat transaksi
+  await query(
+    `UPDATE point_wallets 
+       SET balance = balance + $2, lifetime_points = lifetime_points + $2, updated_at = now()
+     WHERE customer_id = $1`,
+    [customerId, bonus]
+  );
+  await query(
+    `INSERT INTO point_transactions(customer_id, delta, reason, meta)
+     VALUES ($1, $2, 'SIGNUP_BONUS', $3)`,
+    [customerId, bonus, JSON.stringify({ source: "webhook:customers/create" })]
+  );
+}
