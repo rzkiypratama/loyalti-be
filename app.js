@@ -1,11 +1,10 @@
-// app.js
 import express from "express";
 import path from "node:path";
 import crypto from "node:crypto";
 import morgan from "morgan";
 import cors from "cors";
 import { fileURLToPath } from "node:url";
-import "./src/configs/env.js"; // load .env
+import "./src/configs/env.js";
 import routes from "./src/index.js";
 import { logger } from "./src/utils/logger.js";
 import { webhookHandler } from "./src/controllers/webhook.controller.js";
@@ -31,10 +30,8 @@ app.use(
   "/webhooks",
   express.raw({ type: "application/json" }),
   webhookGuard,
-  webhookHandler // <-- daftar path spesifik ada di sini
+  webhookHandler
 );
-// route webhook (satu pintu)
-// app.post("/webhooks/:rest(.*)", webhookHandler);
 
 /* ---------- APIs biasa ---------- */
 app.use(express.json());

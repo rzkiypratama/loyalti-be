@@ -27,12 +27,16 @@ export async function me(req, res) {
 }
 
 export async function redeem(req, res) {
-  const { points } = req.body || {};
-  if (!Number.isInteger(points) || points <= 0)
-    return res.status(400).json({ error: "bad_points" });
-  const { discount_code, value_cents } = await redeemPoints(
-    req.user.cid,
-    points
-  );
-  res.json({ discount_code, value_cents });
+  try {
+    const { points } = req.body || {};
+    const result = await redeemPoints(req.user.cid, points);
+    // kalau nanti mau return discount code, tambahkan di sini
+    res.json({ ok: true, balance: result.balance });
+  } catch (e) {
+    const status = e.status || 500;
+    // kirimkan reason yang berguna ke frontend
+    const payload = { error: e.message || "internal_error" };
+    if (e.balance !== undefined) payload.balance = e.balance;
+    res.status(status).json(payload);
+  }
 }
