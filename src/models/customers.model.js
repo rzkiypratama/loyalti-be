@@ -1,4 +1,5 @@
 import { query } from "../configs/db.js";
+import { pool } from "../configs/db.js";
 
 export async function getOrCreateCustomerByEmail(email) {
   const rows = await query(

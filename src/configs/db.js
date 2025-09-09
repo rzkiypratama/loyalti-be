@@ -18,3 +18,20 @@ export async function query(sql, params) {
   const res = await pool.query(sql, params);
   return res.rows;
 }
+
+export async function tx(run) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await run(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    throw e;
+  } finally {
+    client.release();
+  }
+}
