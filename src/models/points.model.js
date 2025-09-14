@@ -77,3 +77,63 @@ export async function grantSignupBonus(customerId, bonus = 200) {
     [customerId, bonus, JSON.stringify({ source: "webhook:customers/create" })]
   );
 }
+
+export async function getTierInfo(customerId) {
+  // ambil lifetime_points & (opsional) tier tersimpan
+  const [w] = await query(
+    `SELECT lifetime_points FROM point_wallets WHERE customer_id = $1`,
+    [customerId]
+  );
+  const lifetime = Number(w?.lifetime_points || 0);
+
+  // ambil semua tier (urut dari min_points naik)
+  const tiers = await query(
+    `SELECT id, name, min_points
+       FROM tiers
+      ORDER BY min_points ASC`
+  );
+  if (!tiers.length) {
+    // fallback: kalau belum ada tier di DB
+    return {
+      current: { name: "Bronze", min_points: 0 },
+      next: null,
+      progress: { lifetime, pct: 100, to_next: 0, next_min: null },
+    };
+  }
+
+  // tentukan current
+  let current = tiers[0];
+  for (const t of tiers) {
+    if (lifetime >= Number(t.min_points)) current = t;
+    else break;
+  }
+
+  // cari next (tier setelah current)
+  const idx = tiers.findIndex((t) => t.id === current.id);
+  const next = idx >= 0 && idx < tiers.length - 1 ? tiers[idx + 1] : null;
+
+  // progress
+  let pct = 100,
+    to_next = 0,
+    next_min = null;
+  if (next) {
+    next_min = Number(next.min_points);
+    const base = Number(current.min_points);
+    const span = Math.max(1, next_min - base);
+    const gained = Math.max(0, lifetime - base);
+    pct = Math.max(0, Math.min(100, Math.round((gained / span) * 100)));
+    to_next = Math.max(0, next_min - lifetime);
+  }
+
+  return {
+    current: {
+      id: current.id,
+      name: current.name,
+      min_points: Number(current.min_points),
+    },
+    next: next
+      ? { id: next.id, name: next.name, min_points: Number(next.min_points) }
+      : null,
+    progress: { lifetime, pct, to_next, next_min },
+  };
+}
