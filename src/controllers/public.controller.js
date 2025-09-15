@@ -22,9 +22,31 @@ export async function session(req, res) {
   res.json({ token });
 }
 
-export async function tiers(req, res) {
-  const tier = await getTierInfo(req.user.cid);
-  res.json(tier);
+export async function me(req, res, next) {
+  try {
+    const cid = req.user?.cid;
+    if (!cid) return res.status(401).json({ error: "unauthorized" });
+
+    // Boleh sequential seperti ini (cukup cepat),
+    // atau paralel: const [view, tier] = await Promise.all([getWalletView(cid), getTierInfo(cid)]);
+    const view = await getWalletView(cid);
+    const tier = await getTierInfo(cid);
+
+    return res.json({ ...view, tier }); // <- perbaikan penting
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function tiers(req, res, next) {
+  try {
+    const cid = req.user?.cid;
+    if (!cid) return res.status(401).json({ error: "unauthorized" });
+    const tier = await getTierInfo(cid);
+    return res.json(tier);
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function redeem(req, res) {
