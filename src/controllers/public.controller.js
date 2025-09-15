@@ -22,10 +22,9 @@ export async function session(req, res) {
   res.json({ token });
 }
 
-export async function me(req, res) {
-  const view = await getWalletView(req.user.cid);
+export async function tiers(req, res) {
   const tier = await getTierInfo(req.user.cid);
-  res.json(...view, tier);
+  res.json(tier);
 }
 
 export async function redeem(req, res) {
@@ -41,9 +40,4 @@ export async function redeem(req, res) {
     if (e.balance !== undefined) payload.balance = e.balance;
     res.status(status).json(payload);
   }
-}
-
-export async function tiers(req, res) {
-  const tier = await getTierInfo(req.user.cid);
-  res.json(tier);
 }
