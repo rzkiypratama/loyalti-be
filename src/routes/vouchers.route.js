@@ -6,6 +6,6 @@ import {
 import { authMiddleware } from "../middlewares/auth.js";
 
 const r = Router();
-r.get("/", authMiddleware, getVouchers); // list vouchers
-r.post("/redeem", authMiddleware, postRedeemVoucher); // redeem voucher
+r.get("/vouchers", authMiddleware, getVouchers); // list vouchers
+r.post("/vouchers/redeem", authMiddleware, postRedeemVoucher); // redeem voucher
 export default r;
