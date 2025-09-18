@@ -75,47 +75,70 @@ export async function redeemVoucher(customerId, voucherId) {
 }
 
 async function ensurePriceRule(voucher) {
-  if (voucher.shopify_price_rule_id) return voucher.shopify_price_rule_id;
+  if (!DOMAIN || !TOKEN) {
+    const err = new Error("shopify_env_missing");
+    err.status = 500;
+    err.details = {
+      hint: "Pastikan SHOP_DOMAIN dan SHOP_ACCESS_TOKEN terisi.",
+    };
+    throw err;
+  }
 
-  // Map konfigurasi voucher -> payload Price Rule
-  let value_type,
-    value,
-    target_type = "line_item",
-    target_selection = "all",
-    allocation_method = "across";
-  let body = {
+  // Kalau sudah pernah dibuat, pakai ID yang ada
+  if (voucher.shopify_price_rule_id)
+    return String(voucher.shopify_price_rule_id);
+
+  // --- Map voucher -> payload price_rule
+  // Judul unik biar tidak bentrok (Shopify sensitif pada title duplikat untuk validasi tertentu)
+  const title = `${voucher.code || "VOUCHER"}-${voucher.id}`;
+
+  const body = {
     price_rule: {
-      title: voucher.code || `VOUCHER-${voucher.id}`,
-      target_type,
-      target_selection,
-      allocation_method,
+      title,
+      target_type: "line_item",
+      target_selection: "all",
+      allocation_method: "across",
       customer_selection: "all",
+      // pakai ISO8601 UTC; kalau perlu pakai timezone toko, ganti sesuai kebutuhan
       starts_at: new Date().toISOString(),
+
+      // defaults yang aman
+      usage_limit: null,
+      once_per_customer: false,
     },
   };
 
+  // helper format angka ke string negatif yang valid
+  const negStr = (n) => {
+    const num = Number(n || 0);
+    // percentage idealnya ada .0; fixed_amount kita kasih .0 juga nggak masalah
+    return (-Math.abs(num)).toFixed(1);
+  };
+
   if (voucher.discount_type === "percentage") {
-    value_type = "percentage";
-    value = (-Number(voucher.discount_value)).toString(); // -10 = 10%
-    body.price_rule.value_type = value_type;
-    body.price_rule.value = value;
+    body.price_rule.value_type = "percentage";
+    body.price_rule.value = negStr(voucher.discount_value); // contoh 10 -> "-10.0"
   } else if (voucher.discount_type === "fixed_amount") {
-    value_type = "fixed_amount";
-    value = (-Number(voucher.discount_value)).toString(); // -50000 = Rp 50.000
-    body.price_rule.value_type = value_type;
-    body.price_rule.value = value;
+    body.price_rule.value_type = "fixed_amount";
+    body.price_rule.value = negStr(voucher.discount_value); // contoh 50000 -> "-50000.0"
   } else if (voucher.discount_type === "free_shipping") {
-    // Cara aman di REST lama: gunakan free shipping price rule
+    // Model lama REST untuk free shipping:
     body.price_rule.target_type = "shipping_line";
     body.price_rule.value_type = "percentage";
     body.price_rule.value = "-100.0";
+    // penting untuk REST free shipping agar tidak error validasi
+    body.price_rule.entitled_country_ids = []; // kosong = berlaku global
   } else {
-    throw new Error("unsupported_discount_type");
+    const err = new Error("unsupported_discount_type");
+    err.status = 400;
+    err.details = { got: voucher.discount_type };
+    throw err;
   }
 
-  // Minimum belanja? (kalau kamu butuh – belum ada kolomnya di schema pendek)
-  // body.price_rule.prerequisite_subtotal_range = { greater_than_or_equal_to: 300000 }
+  // NOTE: kalau butuh minimum belanja, aktifkan ini:
+  // body.price_rule.prerequisite_subtotal_range = { greater_than_or_equal_to: 300000 };
 
+  // --- Panggil Shopify
   const r = await fetch(admin(`/price_rules.json`), {
     method: "POST",
     headers: {
@@ -124,19 +147,30 @@ async function ensurePriceRule(voucher) {
     },
     body: JSON.stringify(body),
   });
-  const j = await r.json();
-  if (!r.ok || !j.price_rule?.id) {
+
+  let j;
+  try {
+    j = await r.json();
+  } catch {
+    j = { parse_error: true };
+  }
+
+  if (!r.ok || !j?.price_rule?.id) {
+    // lempar detail asli biar kelihatan field yang invalid
     const err = new Error("shopify_price_rule_failed");
-    err.details = j;
+    err.status = r.status || 500;
+    err.details = j || { note: "no response body" };
     throw err;
   }
+
   const id = String(j.price_rule.id);
 
-  // simpan ke DB biar next time langsung pakai
+  // simpan ke DB agar next time tidak bikin ulang
   await query(`UPDATE vouchers SET shopify_price_rule_id=$1 WHERE id=$2`, [
     id,
     voucher.id,
   ]);
+
   return id;
 }
 

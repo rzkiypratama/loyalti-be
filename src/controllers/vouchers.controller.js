@@ -15,6 +15,7 @@ export async function postRedeemVoucher(req, res) {
     const out = await redeemVoucher(req.user.cid, id);
     res.json(out);
   } catch (e) {
-    res.status(e.status || 500).json({ error: e.message });
+    console.error("Shopify error:", e.details || e.message);
+    res.status(e.status || 500).json({ error: e.message, details: e.details });
   }
 }
