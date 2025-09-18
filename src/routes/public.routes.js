@@ -6,16 +6,9 @@ import {
   redeem,
   tiers,
 } from "../controllers/public.controller.js";
-import {
-  getVouchers,
-  postRedeemVoucher,
-} from "../controllers/vouchers.controller.js";
 import { requireAuth } from "../middlewares/auth.js";
 
 const r = Router();
-
-r.get("/vouchers", requireAuth, getVouchers); // list vouchers
-r.post("/vouchers/redeem", requireAuth, postRedeemVoucher); // redeem voucher
 
 r.post("/public/init", init);
 r.post("/public/session", session);
