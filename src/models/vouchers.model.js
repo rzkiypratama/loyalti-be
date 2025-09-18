@@ -2,7 +2,20 @@ import { query } from "../configs/db.js";
 import fetch from "node-fetch";
 
 export async function listVouchers() {
-  const rows = await query(`SELECT * FROM vouchers ORDER BY min_points`);
+  // alias min_points -> points_cost biar UI gak perlu diubah
+  const rows = await query(`
+    SELECT
+      id,
+      code,
+      title,
+      description,
+      min_points AS points_cost,
+      discount_type,
+      discount_value,
+      duration_days
+    FROM vouchers
+    ORDER BY min_points ASC, id ASC
+  `);
   return rows;
 }
 
